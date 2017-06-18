@@ -2,6 +2,8 @@ package org.mschaeffner.jease.apps;
 
 import java.util.List;
 
+import javax.inject.Inject;
+
 import org.mschaeffner.jease.context.JSON;
 
 import io.undertow.server.HttpHandler;
@@ -11,6 +13,7 @@ public class ListAppsHandler implements HttpHandler {
 
 	private final AppsRepo appsRepo;
 
+	@Inject
 	public ListAppsHandler(AppsRepo appsRepo) {
 		this.appsRepo = appsRepo;
 	}
