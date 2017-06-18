@@ -1,22 +1,19 @@
 package org.mschaeffner.jease.apps;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mschaeffner.jease.context.Main;
+import org.mockito.ArgumentCaptor;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -31,9 +28,6 @@ public class CreateAppHandlerTest {
 	@Test
 	public void testHandleRequest() throws Exception {
 
-		final Path tempDirPath = Files.createTempDirectory("");
-		final File appsDir = tempDirPath.toFile();
-
 		final String httpBody = "{\"name\":\"app1\",\"ports\":[1001,1002,1003]}";
 		final InputStream httpBodyStream = new ByteArrayInputStream(httpBody.getBytes());
 
@@ -42,29 +36,25 @@ public class CreateAppHandlerTest {
 		when(exchange.getInputStream()).thenReturn(httpBodyStream);
 		when(exchange.getResponseSender()).thenReturn(sender);
 
-		final CreateAppHandler handler = new CreateAppHandler(appsDir);
+		final AppsRepo appsRepo = mock(AppsRepo.class);
+		final CreateAppHandler handler = new CreateAppHandler(appsRepo);
 		handler.handleRequest(exchange);
 
 		final String expectedResult = "{\"name\":\"app1\",\"ports\":[1001,1002,1003]}";
 		verify(sender).send(expectedResult);
 		verify(exchange).setStatusCode(201);
 
-		final String fileContent = getAppConfigJsonFromFile(appsDir, "app1");
-		assertThat(fileContent, is(expectedResult));
-	}
+		final ArgumentCaptor<App> appCaptor = ArgumentCaptor.forClass(App.class);
+		verify(appsRepo).create(appCaptor.capture());
 
-	private String getAppConfigJsonFromFile(File appsDir, String appName) {
-		try {
-			final File appDir = new File(appsDir, appName);
-			final File jeaseJsonFile = new File(appDir, Main.JEASE_JSON_FILENAME);
-			final Path jeaseJsonPath = Paths.get(jeaseJsonFile.getAbsolutePath());
-			final byte[] fileContent = Files.readAllBytes(jeaseJsonPath);
-			return new String(fileContent);
-		} catch (IOException e) {
-			// TODO log exception properly
-			System.err.println(e.getMessage());
-			return null;
-		}
+		final App capturedApp = appCaptor.getValue();
+		assertThat(capturedApp.getName(), is("app1"));
+		assertThat(capturedApp.getCurrentFileName(), is(nullValue()));
+
+		assertThat(capturedApp.getPorts(), hasSize(3));
+		assertThat(capturedApp.getPorts().get(0), is(1001));
+		assertThat(capturedApp.getPorts().get(1), is(1002));
+		assertThat(capturedApp.getPorts().get(2), is(1003));
 	}
 
 }

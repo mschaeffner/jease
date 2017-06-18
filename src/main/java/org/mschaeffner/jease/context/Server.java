@@ -1,6 +1,6 @@
 package org.mschaeffner.jease.context;
 
-import java.io.File;
+import javax.inject.Inject;
 
 import org.mschaeffner.jease.apps.CreateAppHandler;
 import org.mschaeffner.jease.apps.ListAppsHandler;
@@ -13,31 +13,39 @@ import io.undertow.server.handlers.BlockingHandler;
 
 public class Server {
 
-	public Server(File appsDir, int port) {
+	private final Undertow undertow;
+
+	@Inject
+	public Server(ContextConfig contextConfig, //
+			ListAppsHandler listAppsHandler, //
+			CreateAppHandler createAppHandler, //
+			UploadJarHandler uploadJarHandler) {
 
 		final HttpHandler apiHandler = Handlers.routing()
 
 				// get list of all apps
-				.get("/apps", new ListAppsHandler(appsDir)) //
+				.get("/apps", listAppsHandler) //
 
 				// create a new app
-				.post("/apps", new BlockingHandler(new CreateAppHandler(appsDir))) //
+				.post("/apps", new BlockingHandler(createAppHandler)) //
 
 				// upload a jar file for an app
-				.post("/apps/{appName}/jars", new BlockingHandler(new UploadJarHandler(appsDir))) //
+				.post("/apps/{appName}/jars", new BlockingHandler(uploadJarHandler)) //
 
 				// fallback handler
-				.setFallbackHandler(exchange -> exchange.getResponseSender().send("Hello World")); //
+				.setFallbackHandler(exchange -> exchange.setStatusCode(404)); //
 
 		final HttpHandler pathHandler = Handlers.path() //
 				.addPrefixPath("/api", apiHandler);
 
-		final Undertow server = Undertow.builder() //
-				.addHttpListener(port, "localhost") //
+		this.undertow = Undertow.builder() //
+				.addHttpListener(contextConfig.getPort(), "localhost") //
 				.setHandler(pathHandler) //
 				.build(); //
+	}
 
-		server.start();
+	public void start() {
+		undertow.start();
 	}
 
 }

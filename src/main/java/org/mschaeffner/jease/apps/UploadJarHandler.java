@@ -1,38 +1,31 @@
 package org.mschaeffner.jease.apps;
 
-import java.io.File;
 import java.io.InputStream;
-import java.nio.file.Files;
+
+import org.mschaeffner.jease.context.JSON;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 
 public class UploadJarHandler implements HttpHandler {
 
-	private final File appsDir;
+	private final AppsRepo appsRepo;
 
-	public UploadJarHandler(File appsDir) {
-		this.appsDir = appsDir;
+	public UploadJarHandler(AppsRepo appsRepo) {
+		this.appsRepo = appsRepo;
 	}
 
 	@Override
-	public void handleRequest(HttpServerExchange exchange) throws Exception {
+	public void handleRequest(HttpServerExchange exchange) {
 
 		final String appName = exchange.getQueryParameters().get("appName").peek();
 		final InputStream inputStream = exchange.getInputStream();
-		final String newFilename = getRandomFilename() + ".jar";
 
-		final File appDir = new File(appsDir, appName);
-		final File jarFile = new File(appDir, newFilename);
-		Files.copy(inputStream, jarFile.toPath());
+		final App app = appsRepo.upload(appName, inputStream);
 
 		exchange.setStatusCode(201);
-		exchange.getResponseSender().send(newFilename);
-	}
-
-	private static String getRandomFilename() {
-		final long currentTime = System.currentTimeMillis();
-		return String.valueOf(currentTime);
+		final String responseData = JSON.toJson(app);
+		exchange.getResponseSender().send(responseData);
 	}
 
 }

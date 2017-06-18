@@ -1,42 +1,19 @@
 package org.mschaeffner.jease.context;
 
-import java.io.File;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Module;
 
 public class Main {
 
-	public static final String JEASE_JSON_FILENAME = "jease.json";
+	public static void main(String[] args) throws ContextConfigException {
+		
+		final ContextConfig config = new ContextConfig();
+		final Module module = new MainModule(config);
+		final Injector injector = Guice.createInjector(module);
 
-	public static void main(String[] args) {
-		final int port = getPort();
-		final File appsDir = getAppDir();
-		new Server(appsDir, port);
-	}
-
-	static int getPort() {
-		final String portStr = System.getProperty("port");
-		try {
-			int result = Integer.valueOf(portStr).intValue();
-			return result;
-		} catch (NumberFormatException e) {
-			System.err.println("Port number must be provided as a system property, e.g. -Dport=8080");
-			System.exit(-1);
-			return -1;
-		}
-	}
-
-	static File getAppDir() {
-		final String appsDirStr = System.getProperty("appsDir");
-		if (appsDirStr == null) {
-			System.err.println("Apps directory must be provided as a system property, e.g. -DappsDir=/opt/jease/apps");
-			System.exit(-1);
-		}
-
-		final File appsDir = new File(appsDirStr);
-		if (!appsDir.isDirectory()) {
-			System.err.println("Path to apps directory is not a directory");
-			System.exit(-1);
-		}
-		return appsDir;
+		final Server server = injector.getInstance(Server.class);
+		server.start();
 	}
 
 }
