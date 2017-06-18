@@ -1,5 +1,6 @@
 package org.mschaeffner.jease.apps;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -53,45 +54,16 @@ public class AppsRepoTest {
 		assertThat(result, hasSize(3));
 
 		assertThat(result.get(0).getName(), is("app1"));
-		// FIXME
-		//assertThat(result.get(0).getCurrentFileName(), is("abc.jar"));
+		assertThat(result.get(0).getCurrentFileName(), is("abc.jar"));
 		assertThat(result.get(0).getPorts(), is(Arrays.asList(1001, 1002, 1003)));
 
 		assertThat(result.get(1).getName(), is("app2"));
-		// FIXME
-		//assertThat(result.get(1).getCurrentFileName(), is(nullValue()));
+		assertThat(result.get(1).getCurrentFileName(), is(nullValue()));
 		assertThat(result.get(1).getPorts(), is(Arrays.asList(2001, 2002)));
 
 		assertThat(result.get(2).getName(), is("app3"));
-		// FIXME
-		//assertThat(result.get(2).getCurrentFileName(), is("12345.jar"));
+		assertThat(result.get(2).getCurrentFileName(), is("12345.jar"));
 		assertThat(result.get(2).getPorts(), is(Arrays.asList(3001, 3002)));
-	}
-
-	private void createAppFolderWithConfigFile(File appsDir, App newApp) {
-		final File newAppDir = new File(appsDir, newApp.getName());
-		newAppDir.mkdirs();
-
-		final File jeaseJsonFile = new File(newAppDir, ContextConfig.JEASE_JSON_FILENAME);
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(jeaseJsonFile))) {
-			final AppConfig appConfig = new AppConfig(newApp.getPorts());
-			final String content = JSON.toJson(appConfig);
-			writer.write(content);
-		} catch (IOException e) {
-			// TODO log exception properly
-			System.err.println(e.getMessage());
-		}
-		
-		if(newApp.getCurrentFileName() != null) {
-			final File currentJarFile = new File(newAppDir, newApp.getCurrentFileName());
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(currentJarFile))) {
-				writer.write("");
-			} catch (IOException e) {
-				// TODO log exception properly
-				System.err.println(e.getMessage());
-			}
-		}
-		
 	}
 
 	@Test
@@ -114,11 +86,13 @@ public class AppsRepoTest {
 	}
 
 	@Test
-	public void testHandleRequest() throws Exception {
+	public void testUpload() throws Exception {
 
 		final Path tempDirPath = Files.createTempDirectory("");
 		final File appsDir = tempDirPath.toFile();
-		new File(appsDir, "app1").mkdirs();
+
+		final App app1 = new App("app1", Arrays.asList(1001, 1002, 1003), null);
+		createAppFolderWithConfigFile(appsDir, app1);
 
 		final byte[] httpBody = "some-binary-data".getBytes();
 		final InputStream inputStream = new ByteArrayInputStream(httpBody);
@@ -128,9 +102,8 @@ public class AppsRepoTest {
 
 		final AppsRepo appsRepo = new AppsRepo(contextConfig);
 		final App returnedApp = appsRepo.upload("app1", inputStream);
-		//FIXME
-		//final byte[] fileContent = getFileContent(appsDir, "app1", returnedApp.getCurrentFileName());
-		//assertThat(fileContent, is(httpBody));
+		final byte[] fileContent = getFileContent(appsDir, "app1", returnedApp.getCurrentFileName());
+		assertThat(fileContent, is(httpBody));
 	}
 
 	private byte[] getFileContent(File appsDir, String appName, String jarFilename) {
@@ -144,6 +117,31 @@ public class AppsRepoTest {
 			// TODO log exception properly
 			System.err.println(e.getMessage());
 			return null;
+		}
+	}
+
+	private void createAppFolderWithConfigFile(File appsDir, App newApp) {
+		final File newAppDir = new File(appsDir, newApp.getName());
+		newAppDir.mkdirs();
+
+		final File jeaseJsonFile = new File(newAppDir, ContextConfig.JEASE_JSON_FILENAME);
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(jeaseJsonFile))) {
+			final AppConfig appConfig = new AppConfig(newApp.getPorts());
+			final String content = JSON.toJson(appConfig);
+			writer.write(content);
+		} catch (IOException e) {
+			// TODO log exception properly
+			System.err.println(e.getMessage());
+		}
+
+		if (newApp.getCurrentFileName() != null) {
+			final File currentJarFile = new File(newAppDir, newApp.getCurrentFileName());
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(currentJarFile))) {
+				writer.write("test content");
+			} catch (IOException e) {
+				// TODO log exception properly
+				System.err.println(e.getMessage());
+			}
 		}
 	}
 

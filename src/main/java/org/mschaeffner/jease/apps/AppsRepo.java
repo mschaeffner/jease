@@ -41,8 +41,8 @@ public class AppsRepo {
 			System.err.println(e.getMessage());
 		}
 
-		// FIXME
-		return null;
+		final App result = convertDirToApp.apply(appDir);
+		return result;
 	}
 
 	public void create(App newApp) {
@@ -65,25 +65,31 @@ public class AppsRepo {
 		final File[] subFiles = contextConfig.getAppsDir().listFiles();
 		final List<App> result = Arrays.stream(subFiles) //
 				.filter(File::isDirectory) //
-				.map(readFileContent) //
+				.map(convertDirToApp) //
 				.filter(Objects::nonNull) //
 				.collect(Collectors.toList());
 		return result;
 	}
 
-	private Function<File, App> readFileContent = (file) -> {
+	private Function<File, App> convertDirToApp = (appDir) -> {
 		try {
-			final File jeaseJsonFile = new File(file, ContextConfig.JEASE_JSON_FILENAME);
+			final File jeaseJsonFile = new File(appDir, ContextConfig.JEASE_JSON_FILENAME);
 			final Path jeaseJsonPath = Paths.get(jeaseJsonFile.getAbsolutePath());
 			final byte[] fileContent = Files.readAllBytes(jeaseJsonPath);
 
 			final AppConfig appConfig = JSON.fromJson(new String(fileContent), AppConfig.class);
-			final String name = file.getName();
+			final String appName = appDir.getName();
 
-			// TODO retrieve current file name
-			final String currentFileName = null;
+			final File[] appFiles = appDir.listFiles();
+			final String currentFileName = Arrays.stream(appFiles) //
+					.filter(File::isFile) //
+					.map(File::getName) //
+					.filter(s -> s.endsWith(".jar")) //
+					.sorted((file1, file2) -> file2.compareTo(file1)) //
+					.findFirst() //
+					.orElse(null);
 
-			final App result = new App(name, appConfig.getPorts(), currentFileName);
+			final App result = new App(appName, appConfig.getPorts(), currentFileName);
 			return result;
 		} catch (IOException e) {
 			// TODO log exception properly
