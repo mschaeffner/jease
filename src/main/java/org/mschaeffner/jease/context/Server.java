@@ -43,7 +43,7 @@ public class Server {
 				.setFallbackHandler(ResponseCodeHandler.HANDLE_404); //
 
 		final PathHandler pathHandler = Handlers.path() //
-				.addPrefixPath("/api", apiHandler);
+				.addPrefixPath("/api", new AuthHandler(apiHandler, contextConfig.getAuthToken()));
 
 		appsRepo.list().forEach(app -> {
 			final String path = "/proxy/" + app.getName();
