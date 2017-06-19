@@ -13,14 +13,12 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mschaeffner.jease.context.AppManager;
 import org.mschaeffner.jease.context.JSON;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -50,19 +48,15 @@ public class UploadJarHandlerTest {
 		queryParameters.put("appName", param);
 		when(exchange.getQueryParameters()).thenReturn(queryParameters);
 
+		final AppManager appManager = mock(AppManager.class);
 		final AppsRepo appsRepo = mock(AppsRepo.class);
-		when(appsRepo.upload("app1", httpBodyStream)).then(new Answer<App>() {
+		final App app = new App("app1", Arrays.asList(1001, 1002), "12345.jar");
+		when(appsRepo.upload("app1", httpBodyStream)).thenReturn(app);
 
-			@Override
-			public App answer(InvocationOnMock invocation) throws Throwable {
-				final List<Integer> ports = Arrays.asList(1001, 1002);
-				return new App("app1", ports, "12345.jar");
-			}
-		});
-
-		final UploadJarHandler handler = new UploadJarHandler(appsRepo);
+		final UploadJarHandler handler = new UploadJarHandler(appsRepo, appManager);
 		handler.handleRequest(exchange);
 
+		verify(appManager).deployApp(app);
 		verify(exchange).setStatusCode(201);
 
 		final ArgumentCaptor<String> senderCaptor = ArgumentCaptor.forClass(String.class);

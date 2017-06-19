@@ -4,6 +4,7 @@ import java.io.InputStream;
 
 import javax.inject.Inject;
 
+import org.mschaeffner.jease.context.AppManager;
 import org.mschaeffner.jease.context.JSON;
 
 import io.undertow.server.HttpHandler;
@@ -13,9 +14,12 @@ public class UploadJarHandler implements HttpHandler {
 
 	private final AppsRepo appsRepo;
 
+	private final AppManager appManager;
+	
 	@Inject
-	public UploadJarHandler(AppsRepo appsRepo) {
+	public UploadJarHandler(AppsRepo appsRepo, AppManager appManager) {
 		this.appsRepo = appsRepo;
+		this.appManager = appManager;
 	}
 
 	@Override
@@ -25,7 +29,8 @@ public class UploadJarHandler implements HttpHandler {
 		final InputStream inputStream = exchange.getInputStream();
 
 		final App app = appsRepo.upload(appName, inputStream);
-
+		appManager.deployApp(app);
+		
 		exchange.setStatusCode(201);
 		final String responseData = JSON.toJson(app);
 		exchange.getResponseSender().send(responseData);

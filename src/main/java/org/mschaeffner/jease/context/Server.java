@@ -2,6 +2,7 @@ package org.mschaeffner.jease.context;
 
 import javax.inject.Inject;
 
+import org.mschaeffner.jease.apps.AppsRepo;
 import org.mschaeffner.jease.apps.CreateAppHandler;
 import org.mschaeffner.jease.apps.ListAppsHandler;
 import org.mschaeffner.jease.apps.UploadJarHandler;
@@ -10,6 +11,10 @@ import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.BlockingHandler;
+import io.undertow.server.handlers.PathHandler;
+import io.undertow.server.handlers.ResponseCodeHandler;
+import io.undertow.server.handlers.proxy.LoadBalancingProxyClient;
+import io.undertow.server.handlers.proxy.ProxyHandler;
 
 public class Server {
 
@@ -17,6 +22,8 @@ public class Server {
 
 	@Inject
 	public Server(ContextConfig contextConfig, //
+			AppManager appManager, //
+			AppsRepo appsRepo, //
 			ListAppsHandler listAppsHandler, //
 			CreateAppHandler createAppHandler, //
 			UploadJarHandler uploadJarHandler) {
@@ -33,10 +40,17 @@ public class Server {
 				.post("/apps/{appName}/jars", new BlockingHandler(uploadJarHandler)) //
 
 				// fallback handler
-				.setFallbackHandler(exchange -> exchange.setStatusCode(404)); //
+				.setFallbackHandler(ResponseCodeHandler.HANDLE_404); //
 
-		final HttpHandler pathHandler = Handlers.path() //
+		final PathHandler pathHandler = Handlers.path() //
 				.addPrefixPath("/api", apiHandler);
+
+		appsRepo.list().forEach(app -> {
+			final String path = "/proxy/" + app.getName();
+			final LoadBalancingProxyClient loadBalancer = appManager.deployApp(app);
+			final ProxyHandler proxyHandler = new ProxyHandler(loadBalancer, 30000, ResponseCodeHandler.HANDLE_404);
+			pathHandler.addPrefixPath(path, proxyHandler);
+		});
 
 		this.undertow = Undertow.builder() //
 				.addHttpListener(contextConfig.getPort(), "localhost") //
