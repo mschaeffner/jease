@@ -51,8 +51,8 @@ public class AppsRepo {
 		final File newAppDir = new File(contextConfig.getAppsDir(), newApp.getName());
 		newAppDir.mkdirs();
 
-		final File jeaseJsonFile = new File(newAppDir, ContextConfig.JEASE_JSON_FILENAME);
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(jeaseJsonFile))) {
+		final File appConfigFile = new File(newAppDir, ContextConfig.APP_CONFIG_JSON_FILENAME);
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(appConfigFile))) {
 			final String content = JSON.toJson(newAppConfig);
 			writer.write(content);
 		} catch (IOException e) {
@@ -73,9 +73,9 @@ public class AppsRepo {
 
 	private Function<File, App> convertDirToApp = (appDir) -> {
 		try {
-			final File jeaseJsonFile = new File(appDir, ContextConfig.JEASE_JSON_FILENAME);
-			final Path jeaseJsonPath = Paths.get(jeaseJsonFile.getAbsolutePath());
-			final byte[] fileContent = Files.readAllBytes(jeaseJsonPath);
+			final File appConfigFile = new File(appDir, ContextConfig.APP_CONFIG_JSON_FILENAME);
+			final Path appConfigPath = Paths.get(appConfigFile.getAbsolutePath());
+			final byte[] fileContent = Files.readAllBytes(appConfigPath);
 
 			final AppConfig appConfig = JSON.fromJson(new String(fileContent), AppConfig.class);
 			final String appName = appDir.getName();

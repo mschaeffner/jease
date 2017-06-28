@@ -39,7 +39,7 @@ public class AppsRepoTest {
 		final App app3 = new App("app3", Arrays.asList(3001, 3002), "12345.jar");
 		createAppFolderWithConfigFile(appsDir, app3);
 
-		// create a directory without a jease.json file
+		// create a directory without an app.config.json file
 		new File(appsDir, "emptyDir").mkdirs();
 
 		// create a random file
@@ -81,7 +81,7 @@ public class AppsRepoTest {
 		appsRepo.create(newApp);
 
 		final byte[] expectedResult = "{\"ports\":[1001,1002,1003]}".getBytes();
-		final byte[] fileContent = getFileContent(appsDir, "app1", ContextConfig.JEASE_JSON_FILENAME);
+		final byte[] fileContent = getFileContent(appsDir, "app1", ContextConfig.APP_CONFIG_JSON_FILENAME);
 		assertThat(fileContent, is(expectedResult));
 	}
 
@@ -124,8 +124,8 @@ public class AppsRepoTest {
 		final File newAppDir = new File(appsDir, newApp.getName());
 		newAppDir.mkdirs();
 
-		final File jeaseJsonFile = new File(newAppDir, ContextConfig.JEASE_JSON_FILENAME);
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(jeaseJsonFile))) {
+		final File appConfigFile = new File(newAppDir, ContextConfig.APP_CONFIG_JSON_FILENAME);
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(appConfigFile))) {
 			final AppConfig appConfig = new AppConfig(newApp.getPorts());
 			final String content = JSON.toJson(appConfig);
 			writer.write(content);
